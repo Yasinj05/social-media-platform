@@ -88,3 +88,121 @@ export const deletePost = async (req: AuthRequest, res: Response) => {
     res.status(500).send("Server error");
   }
 };
+export const likePost = async (req: AuthRequest, res: Response) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    if (post.likes.some((like) => like.user.toString() === req.user!.id)) {
+      return res.status(400).json({ msg: "Post already liked" });
+    }
+
+    post.likes.unshift({ user: new Types.ObjectId(req.user!.id) });
+
+    await post.save();
+
+    res.json(post.likes);
+  } catch (err) {
+    console.error((err as Error).message);
+    res.status(500).send("Server error");
+  }
+};
+
+export const unlikePost = async (req: AuthRequest, res: Response) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    if (!post.likes.some((like) => like.user.toString() === req.user!.id)) {
+      return res.status(400).json({ msg: "Post has not yet been liked" });
+    }
+
+    post.likes = post.likes.filter(
+      ({ user }) => user.toString() !== req.user!.id
+    );
+
+    await post.save();
+
+    res.json(post.likes);
+  } catch (err) {
+    console.error((err as Error).message);
+    res.status(500).send("Server error");
+  }
+};
+
+export const commentOnPost = async (req: AuthRequest, res: Response) => {
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ msg: "Text is required" });
+  }
+
+  try {
+    const user = await User.findById(req.user!.id).select("-password");
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    const newComment = {
+      text,
+      user: new Types.ObjectId(req.user!.id),
+      date: new Date(),
+    } as IComment;
+
+    post.comments.unshift(newComment);
+
+    await post.save();
+
+    res.json(post.comments);
+  } catch (err) {
+    console.error((err as Error).message);
+    res.status(500).send("Server error");
+  }
+};
+
+export const deleteComment = async (req: AuthRequest, res: Response) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ msg: "Post not found" });
+    }
+
+    // Pull out comment
+    const comment = post.comments.find(
+      (comment) => (comment as any)._id.toString() === req.params.comment_id
+    ) as IComment;
+
+    // Make sure comment exists
+    if (!comment) {
+      return res.status(404).json({ msg: "Comment does not exist" });
+    }
+
+    // Check user
+    if (comment.user.toString() !== req.user!.id) {
+      return res.status(401).json({ msg: "User not authorized" });
+    }
+
+    // Get remove index
+    const removeIndex = post.comments
+      .map((comment) => (comment as any)._id.toString())
+      .indexOf(req.params.comment_id);
+
+    post.comments.splice(removeIndex, 1);
+
+    await post.save();
+
+    res.json(post.comments);
+  } catch (err) {
+    console.error((err as Error).message);
+    res.status(500).send("Server error");
+  }
+};
