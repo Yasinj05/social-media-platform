@@ -29,11 +29,11 @@ export const login = async (req: Request, res: Response) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ msg: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid Password" });
+      return res.status(400).json({ message: "Invalid Password" });
     }
     const payload = {
       user: {
@@ -43,7 +43,7 @@ export const login = async (req: Request, res: Response) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET_KEY!,
-      { expiresIn: 3600 },
+      { expiresIn: "7d" },
       (err, token) => {
         if (err) throw err;
         res.json({ token });
