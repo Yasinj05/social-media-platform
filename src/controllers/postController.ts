@@ -59,7 +59,7 @@ export const getPostById = async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error((err as Error).message);
     if ((err as any).kind === "ObjectId") {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
     res.status(500).send("Server error");
   }
@@ -93,20 +93,22 @@ export const likePost = async (req: AuthRequest, res: Response) => {
     const post = await Post.findById(req.params.id);
 
     if (!post) {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
 
+    // Check if the post has already been liked by this user
     if (post.likes.some((like) => like.user.toString() === req.user!.id)) {
-      return res.status(400).json({ msg: "Post already liked" });
+      return res.status(400).json({ message: "Post already liked" });
     }
 
+    // Add user ID to likes array
     post.likes.unshift({ user: new Types.ObjectId(req.user!.id) });
 
     await post.save();
 
     res.json(post.likes);
   } catch (err) {
-    console.error((err as Error).message);
+    console.error("Error in likePost controller:", (err as Error).message);
     res.status(500).send("Server error");
   }
 };
@@ -116,11 +118,11 @@ export const unlikePost = async (req: AuthRequest, res: Response) => {
     const post = await Post.findById(req.params.id);
 
     if (!post) {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
 
     if (!post.likes.some((like) => like.user.toString() === req.user!.id)) {
-      return res.status(400).json({ msg: "Post has not yet been liked" });
+      return res.status(400).json({ message: "Post has not yet been liked" });
     }
 
     post.likes = post.likes.filter(
@@ -129,7 +131,7 @@ export const unlikePost = async (req: AuthRequest, res: Response) => {
 
     await post.save();
 
-    res.json(post.likes);
+    res.json({ message: "Post unliked successfully" });
   } catch (err) {
     console.error((err as Error).message);
     res.status(500).send("Server error");
@@ -140,7 +142,7 @@ export const commentOnPost = async (req: AuthRequest, res: Response) => {
   const { text } = req.body;
 
   if (!text) {
-    return res.status(400).json({ msg: "Text is required" });
+    return res.status(400).json({ message: "Text is required" });
   }
 
   try {
@@ -148,7 +150,7 @@ export const commentOnPost = async (req: AuthRequest, res: Response) => {
     const post = await Post.findById(req.params.id);
 
     if (!post) {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
 
     const newComment = {
@@ -173,7 +175,7 @@ export const deleteComment = async (req: AuthRequest, res: Response) => {
     const post = await Post.findById(req.params.id);
 
     if (!post) {
-      return res.status(404).json({ msg: "Post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
 
     // Pull out comment
@@ -183,12 +185,12 @@ export const deleteComment = async (req: AuthRequest, res: Response) => {
 
     // Make sure comment exists
     if (!comment) {
-      return res.status(404).json({ msg: "Comment does not exist" });
+      return res.status(404).json({ message: "Comment does not exist" });
     }
 
     // Check user
     if (comment.user.toString() !== req.user!.id) {
-      return res.status(401).json({ msg: "User not authorized" });
+      return res.status(401).json({ message: "User not authorized" });
     }
 
     // Get remove index
@@ -200,7 +202,7 @@ export const deleteComment = async (req: AuthRequest, res: Response) => {
 
     await post.save();
 
-    res.json(post.comments);
+    res.json({ message: "Comment deleted successfully" });
   } catch (err) {
     console.error((err as Error).message);
     res.status(500).send("Server error");
